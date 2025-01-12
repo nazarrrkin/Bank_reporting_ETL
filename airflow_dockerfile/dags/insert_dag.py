@@ -30,7 +30,7 @@ with DAG(
     description = 'Loading data to DS',
     catchup = False,
     schedule = '0 0 * * *',
-    template_searchpath = path
+    template_searchpath = '/'
  ) as dag:
 
     start = EmptyOperator(

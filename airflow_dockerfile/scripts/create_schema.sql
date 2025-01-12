@@ -1,3 +1,5 @@
+begin transaction;
+
 create schema if not exists DS;
 
 
@@ -83,6 +85,7 @@ create table if not exists DS.MD_LEDGER_ACCOUNT_S (
     primary key (ledger_account, start_date)
 );
 
+
 create schema if not exists LOGS;
 
 
@@ -90,3 +93,6 @@ create table if not exists LOGS.logs(
     status varchar,
     time timestamp
 )
+
+
+commit;

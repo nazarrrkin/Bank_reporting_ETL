@@ -19,6 +19,7 @@ x-airflow-common: &airflow-common
     - ./airflow_dockerfile/logs:/opt/airflow/logs
     - ./airflow_dockerfile/plugins:/opt/airflow/plugins
     - ./airflow_dockerfile/scripts:/opt/airflow/scripts
+    - ./airflow_dockerfile/airflow.cfg:/opt/airflow/airflow.cfg
   depends_on:
     &airflow-common-depends-on
     redis:
@@ -35,7 +36,7 @@ services:
       POSTGRES_DB: airflow
     ports:
       - "5432:5432"
-    restart: always
+    restart: on-failure
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
     healthcheck:
@@ -53,7 +54,7 @@ services:
       timeout: 30s
       retries: 50
       start_period: 30s
-    restart: always
+    restart: on-failure
 
   af-webserver:
     <<: *airflow-common
@@ -66,7 +67,7 @@ services:
     command: airflow webserver
     ports:
       - "8080:8080"
-    restart: always
+    restart: on-failure
 
   af-scheduler:
     <<: *airflow-common
@@ -77,7 +78,7 @@ services:
     environment:
       *airflow-common-env
     command: airflow scheduler
-    restart: always
+    restart: on-failure
 
   af-worker:
     <<: *airflow-common
@@ -88,7 +89,7 @@ services:
     environment:
       *airflow-common-env
     command: airflow celery worker
-    restart: always
+    restart: on-failure
 
   airflow-init:
     <<: *airflow-common
@@ -97,7 +98,7 @@ services:
       dockerfile: dockerfile
     container_name: airflow-init
     command: db init
-    restart: always
+    restart: on-failure
     environment:
       <<: *airflow-common-env
 
