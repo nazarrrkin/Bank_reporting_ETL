@@ -1,5 +1,5 @@
-from datetime import datetime
-import pandas
+from datetime import datetime, timedelta
+import pandas as pd
 
 from airflow import DAG
 
@@ -13,15 +13,53 @@ from airflow.configuration import conf
 path = Variable.get('create_schema', default_var='/opt/airflow/scripts/')
 
 def insert_data(table_name):
-    df = pandas.read_csv(f'/opt/airflow/plugins/project_csv/{table_name}.csv', delimiter=';')
-    postgres_hook = PostgresHook(postgres_conn_id = 'postgres_db')
+    try:
+        df = pd.read_csv(f'/opt/airflow/plugins/project_csv/{table_name}.csv', delimiter=';', encoding='utf-8')
+    except UnicodeDecodeError:
+        df = pd.read_csv(f'/opt/airflow/plugins/project_csv/{table_name}.csv', delimiter=';', encoding='cp1252')
+
+    existing_columns = df.columns
+    if table_name == 'md_currency_d' and 'CURRENCY_CODE' in existing_columns:
+        df = pd.read_csv(f'/opt/airflow/plugins/project_csv/{table_name}.csv', delimiter=';', encoding='cp1252', dtype={'CURRENCY_CODE': str})
+
+    df.columns = [col.upper() for col in df.columns]
+
+    postgres_hook = PostgresHook(postgres_conn_id='postgres_db')
+
+    date_columns = postgres_hook.get_records(f"""
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE data_type = 'date' AND table_schema = 'DS' AND table_name = '{table_name}';
+    """)
+
+
+    for column in date_columns:
+        column_name = column[0].upper()
+        df[column_name] = pd.to_datetime(df[column_name], format='%d.%m.%Y', errors='coerce').fillna(
+            pd.to_datetime(df[column_name], format='%d-%m-%Y', errors='coerce')
+        ).fillna(
+            pd.to_datetime(df[column_name], format='%Y-%m-%d', errors='coerce')
+        ).dt.strftime('%Y-%m-%d')
+
     engine = postgres_hook.get_sqlalchemy_engine()
-    df.to_sql(table_name, engine, schema = 'DS', if_exists = 'append', index = False)
+
+    for index, row in df.iterrows():
+        row_dict = row.to_dict()
+        try:
+            df_row = {col: row_dict[col] for col in df.columns}
+            
+            df.iloc[[index]].to_sql(table_name, engine, schema='DS', if_exists='append', index=False)
+        except Exception as e:
+            print(f"Unexpected error for row {index}: {e}")
+            continue
+
+    print(f"Data from {table_name} inserted successfully.")
 
 default_args = {
     'owner' : 'daniil',
     'start_date' : datetime(2025, 1, 1),
-    'retries' : 2
+    'retries' : 2,
+    'retry_delay': timedelta(seconds=5)
 }
 
 with DAG(

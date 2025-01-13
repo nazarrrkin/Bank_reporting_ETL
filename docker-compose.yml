@@ -3,7 +3,7 @@ x-airflow-common: &airflow-common
     &airflow-common-env
     AIRFLOW_CORE_EXECUTOR: CeleryExecutor
     AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
-    AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/DS
     AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW_CORE_FERNET_KEY: ''
@@ -33,7 +33,7 @@ services:
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
+      POSTGRES_DB: DS
     ports:
       - "5432:5432"
     restart: on-failure
