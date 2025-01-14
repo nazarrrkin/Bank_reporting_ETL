@@ -80,6 +80,7 @@ create table if not exists "DS".MD_LEDGER_ACCOUNT_S (
 create schema if not exists "LOGS";
 
 create table if not exists "LOGS".LOGS(
+    "ID" SERIAL PRIMARY KEY,
     "STATUS" VARCHAR,
-    "TIME" TIMESTAMP
+    "TIME" TIMESTAMPTZ
 );
