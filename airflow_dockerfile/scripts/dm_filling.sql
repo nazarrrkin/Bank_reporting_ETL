@@ -16,9 +16,15 @@ ORDER BY
 LIMIT 10;*/
 
 
-create or replace procedure "DS".fill_account_turnover_f(i_OnDate date)
+create or replace procedure "DS".FILL_ACCOUNT_TURNOVER_F(i_OnDate date)
 as $$
 begin
+
+    insert into "LOGS".LOGS("STATUS", "TIME")
+    values (format('Calculating "DM".DM_ACCOUNT_TURNOVER_F for %s', i_OnDate), now());
+
+	delete from "DM".DM_ACCOUNT_TURNOVER_F where "ON_DATE" = i_OnDate;
+
     with credit_data as (
         select
             p."CREDIT_ACCOUNT_RK" as "ACCOUNT_RK",
@@ -51,7 +57,7 @@ begin
         order by "DEBET_ACCOUNT_RK" asc
     )
 
-    insert into "DM".dm_account_turnover_f("ON_DATE", "ACCOUNT_RK", "CREDIT_AMOUNT", "CREDIT_AMOUNT_RUB", "DEBET_AMOUNT", "DEBET_AMOUNT_RUB")
+    insert into "DM".DM_ACCOUNT_TURNOVER_F("ON_DATE", "ACCOUNT_RK", "CREDIT_AMOUNT", "CREDIT_AMOUNT_RUB", "DEBET_AMOUNT", "DEBET_AMOUNT_RUB")
     select
         i_OnDate as "ON_DATE",
         coalesce(c."ACCOUNT_RK", d."ACCOUNT_RK"),
@@ -61,6 +67,10 @@ begin
         d."DEBET_AMOUNT_RUB"
     from credit_data c
     full join debet_data d on c."ACCOUNT_RK" = d."ACCOUNT_RK";
+
+    insert into "LOGS".LOGS("STATUS", "TIME")
+    values (format('"DM".DM_ACCOUNT_TURNOVER_F for %s has been calculated', i_OnDate), now());
+
 end;
 $$ language plpgsql;
 
@@ -69,7 +79,7 @@ declare
     start_date date := '2018-01-31';
 begin
     while start_date <= '2018-01-31' loop
-        call "DS".fill_account_turnover_f(start_date);
+        call "DS".FILL_ACCOUNT_TURNOVER_F(start_date);
         start_date := start_date + interval '1 day';
     end loop;
 end;
@@ -88,9 +98,15 @@ left join "DS".MD_EXCHANGE_RATE_D e
     and e."DATA_ACTUAL_DATE" <= '2017-12-31' AND e."DATA_ACTUAL_END_DATE" >= '2017-12-31';
 
 
-create or replace procedure "DS".fill_account_balance_f(i_OnDate date)
+create or replace procedure "DS".FILL_ACCOUNT_BALANCE_F(i_OnDate date)
 as $$
 begin
+
+    insert into "LOGS".LOGS("STATUS", "TIME")
+    values (format('Calculating "DM".DM_ACCOUNT_BALANCE_F for %s', i_OnDate), now());
+
+    delete from "DM".DM_ACCOUNT_BALANCE_F where "ON_DATE" = i_OnDate;
+
     insert into "DM".DM_ACCOUNT_BALANCE_F
     select i_OnDate as "ON_DATE",
     a."ACCOUNT_RK",
@@ -117,15 +133,20 @@ begin
         on a."CURRENCY_RK" = e."CURRENCY_RK"
         and i_OnDate between e."DATA_ACTUAL_DATE" and e."DATA_ACTUAL_END_DATE"
     where i_OnDate between a."DATA_ACTUAL_DATE" and a."DATA_ACTUAL_END_DATE";
+
+    insert into "LOGS".LOGS("STATUS", "TIME")
+    values (format('"DM".DM_ACCOUNT_BALANCE_F for %s has been calculated', i_OnDate), now());
+
 end;
 $$ language plpgsql;
+
 
 do $$
 declare
     start_date date := '2018-01-01';
 begin
     while start_date <= '2018-01-31' loop
-        call "DS".fill_account_balance_f(start_date date);
+        call "DS".fill_account_balance_f(start_date);
         start_date := start_date + interval '1 day';
     end loop;
 end;
@@ -140,7 +161,12 @@ declare
 begin
     start_date := date_trunc('month', i_OnDate) - interval '1 month';
     end_date := i_OnDate - interval '1 day';
+
+    insert into "LOGS".LOGS("STATUS", "TIME")
+    values (format('Calculating "DM".DM_F101_ROUND_F from %s to %s', start_date, end_date), now());
+
     delete from "DM".DM_F101_ROUND_F where "FROM_DATE" = start_date and "TO_DATE" = end_date;
+
     insert into "DM".DM_F101_ROUND_F(
         "FROM_DATE", "TO_DATE", "CHAPTER", "LEDGER_ACCOUNT", "CHARACTERISTIC",
         "BALANCE_IN_RUB", "R_BALANCE_IN_RUB", "BALANCE_IN_VAL", "R_BALANCE_IN_VAL", "BALANCE_IN_TOTAL", "R_BALANCE_IN_TOTAL",
@@ -193,8 +219,12 @@ begin
     where
         a."DATA_ACTUAL_DATE" <= start_date
         and a."DATA_ACTUAL_END_DATE" >= end_date
-     group by
+    group by
         l."CHAPTER", substr(a."ACCOUNT_NUMBER", 1, 5), a."CHAR_TYPE";
+
+    insert into "LOGS".LOGS("STATUS", "TIME")
+    values (format('"DM".DM_F101_ROUND_F from %s to %s has been calculated', start_date, end_date), now());
+
 end;
 $$ language plpgsql;
 

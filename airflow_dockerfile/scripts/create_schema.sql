@@ -101,7 +101,7 @@ create table if not exists "DM".DM_ACCOUNT_BALANCE_F(
     "ACCOUNT_RK" NUMERIC,
     "BALANCE_OUT" NUMERIC,
     "BALANCE_OUT_RUB" NUMERIC
-)
+);
 
 create table if not exists "DM".DM_F101_ROUND_F(
     "FROM_DATE" DATE,
@@ -133,4 +133,4 @@ create table if not exists "DM".DM_F101_ROUND_F(
     "R_BALANCE_OUT_VAL" NUMERIC(23,8),
     "BALANCE_OUT_TOTAL" NUMERIC(23,8),
     "R_BALANCE_OUT_TOTAL" NUMERIC(23,8)
-)
+);
