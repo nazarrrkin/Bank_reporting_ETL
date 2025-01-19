@@ -130,3 +130,72 @@ begin
     end loop;
 end;
 $$ language plpgsql;
+
+
+create or replace procedure "DM".FILL_F101_ROUND_F(i_OnDate date)
+as $$
+declare
+    start_date date;
+    end_date date;
+begin
+    start_date := date_trunc('month', i_OnDate) - interval '1 month';
+    end_date := i_OnDate - interval '1 day';
+    delete from "DM".DM_F101_ROUND_F where "FROM_DATE" = start_date and "TO_DATE" = end_date;
+    insert into "DM".DM_F101_ROUND_F(
+        "FROM_DATE", "TO_DATE", "CHAPTER", "LEDGER_ACCOUNT", "CHARACTERISTIC",
+        "BALANCE_IN_RUB", "R_BALANCE_IN_RUB", "BALANCE_IN_VAL", "R_BALANCE_IN_VAL", "BALANCE_IN_TOTAL", "R_BALANCE_IN_TOTAL",
+        "TURN_DEB_RUB",  "R_TURN_DEB_RUB", "TURN_DEB_VAL", "R_TURN_DEB_VAL", "TURN_DEB_TOTAL","R_TURN_DEB_TOTAL",
+        "TURN_CRE_RUB", "R_TURN_CRE_RUB", "TURN_CRE_VAL", "R_TURN_CRE_VAL", "TURN_CRE_TOTAL", "R_TURN_CRE_TOTAL",
+        "BALANCE_OUT_RUB", "R_BALANCE_OUT_RUB", "BALANCE_OUT_VAL", "R_BALANCE_OUT_VAL", "BALANCE_OUT_TOTAL", "R_BALANCE_OUT_TOTAL"
+    )
+    select
+        start_date as "FROM_DATE",
+        end_date as "TO_DATE",
+        l."CHAPTER",
+        substr(a."ACCOUNT_NUMBER", 1, 5) as "LEDGER_ACCOUNT",
+        a."CHAR_TYPE" as "CHARACTERISTIC",
+        sum(case when a."CURRENCY_CODE" = '810' or a."CURRENCY_CODE" = '643' then b1."BALANCE_OUT_RUB" else 0 end) as "BALANCE_IN_RUB",
+        sum(case when a."CURRENCY_CODE" = '810' or a."CURRENCY_CODE" = '643' then b1."BALANCE_OUT_RUB" else 0 end) / 1000 as "R_BALANCE_IN_RUB",
+        sum(case when a."CURRENCY_CODE" != '810' and a."CURRENCY_CODE" != '643' then b1."BALANCE_OUT_RUB" else 0 end) as "BALANCE_IN_VAL",
+        sum(case when a."CURRENCY_CODE" != '810' and a."CURRENCY_CODE" != '643' then b1."BALANCE_OUT_RUB" else 0 end) / 1000 as "R_BALANCE_IN_VAL",
+        sum(b1."BALANCE_OUT_RUB") as "BALANCE_IN_TOTAL",
+        sum(b1."BALANCE_OUT_RUB") / 1000 as "R_BALANCE_IN_TOTAL",
+        sum(case when a."CURRENCY_CODE" = '810' or a."CURRENCY_CODE" = '643' then t."DEBET_AMOUNT_RUB" else 0 end) as "TURN_DEB_RUB",
+        sum(case when a."CURRENCY_CODE" = '810' or a."CURRENCY_CODE" = '643' then t."DEBET_AMOUNT_RUB" else 0 end) / 1000 as "R_TURN_DEB_RUB",
+        sum(case when a."CURRENCY_CODE" != '810' and a."CURRENCY_CODE" != '643' then t."DEBET_AMOUNT_RUB" else 0 end) as "TURN_DEB_VAL",
+        sum(case when a."CURRENCY_CODE" != '810' and a."CURRENCY_CODE" != '643' then t."DEBET_AMOUNT_RUB" else 0 end) / 1000 as "R_TURN_DEB_VAL",
+        sum(t."DEBET_AMOUNT_RUB") as "TURN_DEB_TOTAL",
+        sum(t."DEBET_AMOUNT_RUB") / 1000 as "R_TURN_DEB_TOTAL",
+        sum(case when a."CURRENCY_CODE" = '810' or a."CURRENCY_CODE" = '643' then t."CREDIT_AMOUNT_RUB" else 0 end) as "TURN_CRE_RUB",
+        sum(case when a."CURRENCY_CODE" = '810' or a."CURRENCY_CODE" = '643' then t."CREDIT_AMOUNT_RUB" else 0 end) / 1000 as "R_TURN_CRE_RUB",
+        sum(case when a."CURRENCY_CODE" != '810' and a."CURRENCY_CODE" != '643' then t."CREDIT_AMOUNT_RUB" else 0 end) as "TURN_CRE_VAL",
+        sum(case when a."CURRENCY_CODE" != '810' and a."CURRENCY_CODE" != '643' then t."CREDIT_AMOUNT_RUB" else 0 end) / 1000 as "R_TURN_CRE_VAL",
+        sum(t."CREDIT_AMOUNT_RUB") as "TURN_CRE_TOTAL",
+        sum(t."CREDIT_AMOUNT_RUB") / 1000 as "R_TURN_CRE_TOTAL",
+        sum(case when a."CURRENCY_CODE" = '810' or a."CURRENCY_CODE" = '643' then b2."BALANCE_OUT_RUB" else 0 end) as "BALANCE_OUT_RUB",
+        sum(case when a."CURRENCY_CODE" = '810' or a."CURRENCY_CODE" = '643' then b2."BALANCE_OUT_RUB" else 0 end) / 1000 as "R_BALANCE_OUT_RUB",
+        sum(case when a."CURRENCY_CODE" != '810' and a."CURRENCY_CODE" != '643' then b2."BALANCE_OUT_RUB" else 0 end) as "BALANCE_OUT_VAL",
+        sum(case when a."CURRENCY_CODE" != '810' and a."CURRENCY_CODE" != '643' then b2."BALANCE_OUT_RUB" else 0 end) / 1000 as "R_BALANCE_OUT_VAL",
+        sum(b2."BALANCE_OUT_RUB") as "BALANCE_OUT_TOTAL",
+        sum(b2."BALANCE_OUT_RUB") / 1000 as "R_BALANCE_OUT_TOTAL"
+    from "DS".MD_ACCOUNT_D a
+    left join "DS".md_ledger_account_s l
+        on substr(a."ACCOUNT_NUMBER", 1, 5)::integer = l."LEDGER_ACCOUNT"
+    left join "DM".DM_ACCOUNT_BALANCE_F b1
+        on a."ACCOUNT_RK" = b1."ACCOUNT_RK"
+        and b1."ON_DATE" = start_date - interval '1 day'
+    left join "DM".DM_ACCOUNT_TURNOVER_F t
+        on a."ACCOUNT_RK" = t."ACCOUNT_RK"
+        and t."ON_DATE" between start_date and end_date
+    left join "DM".DM_ACCOUNT_BALANCE_F b2
+        on a."ACCOUNT_RK" = b2."ACCOUNT_RK"
+        and b2."ON_DATE" = end_date
+    where
+        a."DATA_ACTUAL_DATE" <= start_date
+        and a."DATA_ACTUAL_END_DATE" >= end_date
+     group by
+        l."CHAPTER", substr(a."ACCOUNT_NUMBER", 1, 5), a."CHAR_TYPE";
+end;
+$$ language plpgsql;
+
+call "DM".FILL_F101_ROUND_F('2018-02-01');

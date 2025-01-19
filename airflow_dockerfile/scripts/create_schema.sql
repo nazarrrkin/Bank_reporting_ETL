@@ -103,7 +103,7 @@ create table if not exists "DM".DM_ACCOUNT_BALANCE_F(
     "BALANCE_OUT_RUB" NUMERIC
 )
 
-create table if not exists "DM".FILL_F101_ROUND_F(
+create table if not exists "DM".DM_F101_ROUND_F(
     "FROM_DATE" DATE,
     "TO_DATE" DATE,
     "CHAPTER" VARCHAR(1),
