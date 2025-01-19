@@ -39,6 +39,7 @@ services:
     restart: on-failure
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
+      - ./airflow_dockerfile/plugins:/opt/airflow/plugins
     healthcheck:
       test: [ "CMD", "pg_isready", "-U", "airflow" ]
       interval: 30s
