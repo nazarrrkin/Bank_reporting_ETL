@@ -17,7 +17,7 @@ def logging(status):
     postgres_hook.run(log_query, parameters=(status,))
 
 
-def insert_data(table_name):
+def insert_data(schema, table_name):
     logging(f'Starting data load to {table_name}')
     time.sleep(5)
     try:
@@ -42,7 +42,7 @@ def insert_data(table_name):
     date_columns = postgres_hook.get_records(f"""
         SELECT column_name
         FROM information_schema.columns
-        WHERE data_type = 'date' AND table_schema = 'DS' AND table_name = '{table_name}';
+        WHERE data_type = 'date' AND table_schema = '{schema}' AND table_name = '{table_name}';
     """)
 
     for column in date_columns:
@@ -61,7 +61,7 @@ def insert_data(table_name):
             ON tc.constraint_name = kcu.constraint_name
             AND tc.table_schema = kcu.table_schema
         WHERE tc.constraint_type = 'PRIMARY KEY'
-            AND tc.table_schema = 'DS'
+            AND tc.table_schema = '{schema}'
             AND tc.table_name = '{table_name}';
     """
     primary_keys = postgres_hook.get_records(primary_key_query)
@@ -70,13 +70,13 @@ def insert_data(table_name):
     if not key_columns:
         logging(f'There are no unique constraint columns in table {table_name}. Full data will be writen')
         insert_query = f"""
-            INSERT INTO "DS"."{table_name}" ({', '.join(f'"{col}"' for col in df.columns)})
+            INSERT INTO "{schema}"."{table_name}" ({', '.join(f'"{col}"' for col in df.columns)})
             VALUES %s;
         """
     else:
         logging(f'There are several constraint columns in table {table_name}. Rows with similar keys will be overwritten')
         insert_query = f"""
-            INSERT INTO "DS"."{table_name}" ({', '.join(f'"{col}"' for col in df.columns)})
+            INSERT INTO "{schema}"."{table_name}" ({', '.join(f'"{col}"' for col in df.columns)})
             VALUES %s
             ON CONFLICT ({', '.join(f'"{col}"' for col in key_columns)}) DO UPDATE
             SET {', '.join(f'"{col}" = EXCLUDED."{col}"' for col in df.columns if col not in key_columns)};
@@ -127,37 +127,37 @@ with DAG(
     ft_balance_f_load = PythonOperator(
         task_id = 'ft_balance_f_load',
         python_callable = insert_data,
-        op_kwargs = {'table_name' : 'ft_balance_f'}
+        op_kwargs = {'schema': 'DS', 'table_name' : 'ft_balance_f'}
     )
 
     ft_posting_f_load = PythonOperator(
         task_id = 'ft_posting_f_load',
         python_callable = insert_data,
-        op_kwargs = {'table_name' : 'ft_posting_f'}
+        op_kwargs = {'schema': 'DS', 'table_name' : 'ft_posting_f'}
     )
 
     md_account_d_load = PythonOperator(
         task_id = 'md_account_d_load',
         python_callable = insert_data,
-        op_kwargs = {'table_name' : 'md_account_d'}
+        op_kwargs = {'schema': 'DS', 'table_name' : 'md_account_d'}
     )
 
     md_currency_d_load = PythonOperator(
         task_id = 'md_currency_d_load',
         python_callable = insert_data,
-        op_kwargs = {'table_name' : 'md_currency_d'}
+        op_kwargs = {'schema': 'DS', 'table_name' : 'md_currency_d'}
     )
 
     md_exchange_rate_d_load = PythonOperator(
         task_id = 'md_exchange_rate_d_load',
         python_callable = insert_data,
-        op_kwargs = {'table_name' : 'md_exchange_rate_d'}
+        op_kwargs = {'schema': 'DS', 'table_name' : 'md_exchange_rate_d'}
     )
 
     md_ledger_account_s_load = PythonOperator(
         task_id = 'md_ledger_account_s_load',
         python_callable = insert_data,
-        op_kwargs = {'table_name' : 'md_ledger_account_s'}
+        op_kwargs = {'schema': 'DS', 'table_name' : 'md_ledger_account_s'}
     )
 
     end_load = PythonOperator(

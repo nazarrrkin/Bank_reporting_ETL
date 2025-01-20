@@ -33,7 +33,7 @@ default_args = {
 }
 
 with DAG(
-    'dm_filling_export',
+    'dm_fill_export',
     default_args = default_args,
     description = 'Filling tables in DM layer, then export to csv',
     catchup = False,
