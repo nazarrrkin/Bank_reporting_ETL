@@ -31,7 +31,7 @@ begin
             sum(p."CREDIT_AMOUNT") as "CREDIT_AMOUNT",
             coalesce(SUM(p."CREDIT_AMOUNT") * max(m."REDUCED_COURCE"), sum(p."CREDIT_AMOUNT")) as "CREDIT_AMOUNT_RUB"
         from "DS".ft_posting_f p
-        left join "DS".md_account_d a
+        inner join "DS".md_account_d a
             on p."CREDIT_ACCOUNT_RK" = a."ACCOUNT_RK"
         left join "DS".md_exchange_rate_d m
             on a."CURRENCY_RK" = m."CURRENCY_RK"
