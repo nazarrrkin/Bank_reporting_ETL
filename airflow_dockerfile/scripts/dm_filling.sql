@@ -33,6 +33,7 @@ begin
         from "DS".ft_posting_f p
         inner join "DS".md_account_d a
             on p."CREDIT_ACCOUNT_RK" = a."ACCOUNT_RK"
+	    and p."OPER_DATE" between a."DATA_ACTUAL_DATE" and a."DATA_ACTUAL_END_DATE"
         left join "DS".md_exchange_rate_d m
             on a."CURRENCY_RK" = m."CURRENCY_RK"
             and p."OPER_DATE" between m."DATA_ACTUAL_DATE" and m."DATA_ACTUAL_END_DATE"
