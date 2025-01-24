@@ -31,10 +31,10 @@ begin
             sum(p."CREDIT_AMOUNT") as "CREDIT_AMOUNT",
             coalesce(SUM(p."CREDIT_AMOUNT") * max(m."REDUCED_COURCE"), sum(p."CREDIT_AMOUNT")) as "CREDIT_AMOUNT_RUB"
         from "DS".ft_posting_f p
-        left join "DS".ft_balance_f b
-            on p."CREDIT_ACCOUNT_RK" = b."ACCOUNT_RK"
+        left join "DS".md_account_d a
+            on p."CREDIT_ACCOUNT_RK" = a."ACCOUNT_RK"
         left join "DS".md_exchange_rate_d m
-            on b."CURRENCY_RK" = m."CURRENCY_RK"
+            on a."CURRENCY_RK" = m."CURRENCY_RK"
             and p."OPER_DATE" between m."DATA_ACTUAL_DATE" and m."DATA_ACTUAL_END_DATE"
         where p."OPER_DATE" = i_OnDate
         group by p."CREDIT_ACCOUNT_RK"
@@ -47,8 +47,8 @@ begin
             SUM(p."DEBET_AMOUNT") as "DEBET_AMOUNT",
             coalesce(sum(p."DEBET_AMOUNT") * max(m."REDUCED_COURCE"), sum(p."DEBET_AMOUNT")) as "DEBET_AMOUNT_RUB"
         from "DS".ft_posting_f p
-        left join "DS".ft_balance_f b
-            on p."DEBET_ACCOUNT_RK" = b."ACCOUNT_RK"
+        left join "DS".md_account_d a
+            on p."DEBET_ACCOUNT_RK" = a."ACCOUNT_RK"
         left join "DS".md_exchange_rate_d m
             on b."CURRENCY_RK" = m."CURRENCY_RK"
             and p."OPER_DATE" between m."DATA_ACTUAL_DATE" and m."DATA_ACTUAL_END_DATE"
