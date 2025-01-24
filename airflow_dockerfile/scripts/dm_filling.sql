@@ -23,7 +23,7 @@ begin
     insert into "LOGS".LOGS("STATUS", "TIME")
     values (format('Calculating "DM".DM_ACCOUNT_TURNOVER_F for %s', i_OnDate), now());
 
-	delete from "DM".DM_ACCOUNT_TURNOVER_F where "ON_DATE" = i_OnDate;
+    delete from "DM".DM_ACCOUNT_TURNOVER_F where "ON_DATE" = i_OnDate;
 
     with credit_data as (
         select
